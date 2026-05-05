@@ -6,7 +6,10 @@ import { useEffect } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    fetch((process.env.NEXT_PUBLIC_API_URL || '') + '/api/v1/health').catch(console.error);
+    const ping = () => fetch('/api/wake').catch(console.error);
+    ping();
+    const interval = setInterval(ping, 14 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
