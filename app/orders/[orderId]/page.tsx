@@ -24,7 +24,13 @@ export default function OrderDetailPage() {
     const fetchOrder = async () => {
       try {
         const res = await fetch('/Orders.json');
-        const allOrders = await res.json();
+        const ordersData = await res.json();
+        
+        const saved = JSON.parse(localStorage.getItem('editedOrders') || '{}');
+        const allOrders = ordersData.map((o: any) => 
+          saved[o.id] ? { ...o, ...saved[o.id] } : o
+        );
+
         const data = allOrders.find((o: any) => o.id === Number(orderId));
         setOrder(data || null);
       } catch (error) {

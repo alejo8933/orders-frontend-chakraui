@@ -32,14 +32,22 @@ function OrdersContent() {
     try {
       setIsLoading(true);
       const res = await fetch('/Orders.json');
-      const allOrders = await res.json();
+      const ordersData = await res.json();
+      
+      const saved = JSON.parse(localStorage.getItem('editedOrders') || '{}');
+      const allOrders = ordersData.map((o: any) => 
+        saved[o.id] ? { ...o, ...saved[o.id] } : o
+      );
+      
+      // If there are totally new orders in localStorage (id > max JSON id)
+      // we can append them. But the user only specified mapping.
       
       let filteredItems = allOrders;
       if (search) {
         filteredItems = filteredItems.filter((o: any) => o.orderNumber.toLowerCase().includes(search.toLowerCase()));
       }
       if (customerId) {
-        filteredItems = filteredItems.filter((o: any) => o.customer.id === Number(customerId));
+        filteredItems = filteredItems.filter((o: any) => o.customer?.id === Number(customerId) || o.customerId === Number(customerId));
       }
       if (dateFrom) {
         filteredItems = filteredItems.filter((o: any) => new Date(o.orderDate) >= new Date(dateFrom));

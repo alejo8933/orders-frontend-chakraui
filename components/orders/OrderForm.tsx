@@ -106,7 +106,8 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
       const formData = {
         customerId,
         orderDate,
-        items
+        items,
+        totalAmount
       };
 
       const orderId = isEdit && initialData ? initialData.id : Date.now();
@@ -114,7 +115,6 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
       saved[orderId] = { ...formData, id: orderId };
       localStorage.setItem('editedOrders', JSON.stringify(saved));
       
-      alert(isEdit ? 'Pedido actualizado correctamente' : 'Pedido creado correctamente');
       router.push('/orders');
     } catch (e) {
       toast({ title: 'Error', description: 'No se pudo guardar el pedido', status: 'error', duration: 4000, position: 'top-right' });
