@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { StatusBadge } from '../components/ui/StatusBadge';
 
 export default function Dashboard() {
+  console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
