@@ -4,7 +4,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://orders-rest-api-pyt
 
 const api = axios.create({
   baseURL: BASE_URL + '/api/v1',
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },

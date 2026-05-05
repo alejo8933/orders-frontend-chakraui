@@ -18,33 +18,63 @@ export default function Dashboard() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasTimeout, setHasTimeout] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setHasTimeout(false);
+
+      // Llamadas independientes
+      const promises = [
+        getOrders({ page: 1, limit: 5 })
+          .then(res => {
+            setOrders(res.items);
+            setTotalOrders(res.total);
+          })
+          .catch(e => {
+            console.error('Error fetching orders:', e);
+            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
+          }),
+
+        getOrders({ page: 1, limit: 100 })
+          .then(res => {
+            const sumSales = res.items.reduce((acc, order) => acc + order.totalAmount, 0);
+            setTotalSales(sumSales);
+          })
+          .catch(e => {
+            console.error('Error fetching sum:', e);
+            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
+          }),
+
+        getProducts({ page: 1, limit: 1 })
+          .then(res => setTotalProducts(res.total))
+          .catch(e => {
+            console.error('Error fetching products:', e);
+            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
+          }),
+
+        getCustomers({ page: 1, limit: 1 })
+          .then(res => setTotalCustomers(res.total))
+          .catch(e => {
+            console.error('Error fetching customers:', e);
+            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
+          })
+      ];
+
+      await Promise.allSettled(promises);
+      
+    } catch (error: any) {
+      console.error('Error in dashboard data:', error);
+      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        setHasTimeout(true);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [ordersRes, allOrdersRes, productsRes, customersRes] = await Promise.all([
-          getOrders({ page: 1, limit: 5 }),
-          getOrders({ page: 1, limit: 100 }), // To get sum of totalAmount
-          getProducts({ page: 1, limit: 100 }),
-          getCustomers({ page: 1, limit: 100 })
-        ]);
-
-        setOrders(ordersRes.items);
-        setTotalOrders(ordersRes.total);
-        
-        const sumSales = allOrdersRes.items.reduce((acc, order) => acc + order.totalAmount, 0);
-        setTotalSales(sumSales);
-
-        setTotalProducts(productsRes.total);
-        setTotalCustomers(customersRes.total);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
 
@@ -55,6 +85,15 @@ export default function Dashboard() {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES');
   };
+
+  if (hasTimeout) {
+    return (
+      <Flex direction="column" align="center" justify="center" h="50vh" gap={4}>
+        <Text fontSize="xl" color="red.500">La API está iniciando, por favor espera...</Text>
+        <Button colorScheme="teal" onClick={fetchData}>Reintentar</Button>
+      </Flex>
+    );
+  }
 
   return (
     <Box>
