@@ -18,10 +18,10 @@ interface OrderFormProps {
 export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
   const router = useRouter();
   const toast = useToast();
-  
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  
+
   const [customerId, setCustomerId] = useState<number | ''>(initialData?.customerId || '');
   const [orderDate, setOrderDate] = useState(initialData?.orderDate ? initialData.orderDate.split('T')[0] : '');
 
@@ -30,7 +30,7 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
       setOrderDate(new Date().toISOString().split('T')[0]);
     }
   }, [initialData]);
-  
+
   const [items, setItems] = useState<{ productId: number | ''; quantity: number; unitPrice: number; uid: number }[]>(
     initialData?.items.map((i, idx) => ({
       productId: i.productId,
@@ -64,19 +64,19 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
   const handleProductChange = (uid: number, prodIdStr: string) => {
     const pId = parseInt(prodIdStr);
     const prod = products.find(p => p.id === pId);
-    setItems(items.map(it => 
+    setItems(items.map(it =>
       it.uid === uid ? { ...it, productId: pId || '', unitPrice: prod?.unitPrice || 0 } : it
     ));
   };
 
   const handleQuantityChange = (uid: number, qty: number) => {
-    setItems(items.map(it => 
+    setItems(items.map(it =>
       it.uid === uid ? { ...it, quantity: isNaN(qty) ? 0 : qty } : it
     ));
   };
 
   const addItem = () => setItems([...items, { productId: '', quantity: 1, unitPrice: 0, uid: Date.now() }]);
-  
+
   const removeItem = (uid: number) => {
     if (items.length > 1) {
       setItems(items.filter(it => it.uid !== uid));
@@ -94,7 +94,11 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
       setIsLoading(true);
       const payload: OrderCreate = {
         customerId: customerId as number,
-        items: items.map(it => ({ productId: it.productId as number, quantity: it.quantity }))
+        items: items.map(it => ({
+          productId: it.productId as number,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice
+        }))
       };
 
       if (isEdit && initialData) {
@@ -120,9 +124,9 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
       <Flex direction="column" gap={6}>
         <FormControl isInvalid={customerId === ''}>
           <FormLabel>Cliente</FormLabel>
-          <Select 
-            placeholder="Seleccionar cliente" 
-            value={customerId} 
+          <Select
+            placeholder="Seleccionar cliente"
+            value={customerId}
             onChange={(e) => setCustomerId(parseInt(e.target.value) || '')}
           >
             {customers.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
@@ -141,8 +145,8 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
             <Flex key={item.uid} gap={3} mb={3} align="flex-end">
               <FormControl flex={2} isInvalid={item.productId === ''}>
                 {index === 0 && <FormLabel fontSize="sm" color="gray.500">Producto</FormLabel>}
-                <Select 
-                  placeholder="Seleccionar" 
+                <Select
+                  placeholder="Seleccionar"
                   value={item.productId}
                   onChange={(e) => handleProductChange(item.uid, e.target.value)}
                 >
@@ -151,9 +155,9 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
               </FormControl>
               <FormControl flex={1} isInvalid={item.quantity < 1}>
                 {index === 0 && <FormLabel fontSize="sm" color="gray.500">Cant.</FormLabel>}
-                <NumberInput 
-                  min={1} 
-                  value={item.quantity} 
+                <NumberInput
+                  min={1}
+                  value={item.quantity}
                   onChange={(_, valAsNum) => handleQuantityChange(item.uid, valAsNum)}
                 >
                   <NumberInputField />
@@ -190,11 +194,11 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
           </Text>
         </Box>
 
-        <Button 
-          w="full" 
-          size="lg" 
-          bg="#01696f" 
-          color="white" 
+        <Button
+          w="full"
+          size="lg"
+          bg="#01696f"
+          color="white"
           _hover={{ bg: '#0c4e54' }}
           onClick={handleSubmit}
           isLoading={isLoading}

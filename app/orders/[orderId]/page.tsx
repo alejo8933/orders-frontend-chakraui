@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getOrderById, deleteOrder } from '../../../services/ordersService';
+import { getProducts } from '../../../services/productsService';
 import { Order } from '../../../types/order';
+import { Product } from '../../../types/product';
 import { OrderDetail } from '../../../components/orders/OrderDetail';
 import { OrderItemsTable } from '../../../components/orders/OrderItemsTable';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
@@ -15,23 +17,28 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  
+
   const [order, setOrder] = useState<Order | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchAll = async () => {
       try {
-        const data = await getOrderById(Number(orderId));
-        setOrder(data);
+        const [orderData, prodRes] = await Promise.all([
+          getOrderById(Number(orderId)),
+          getProducts({ limit: 100 })
+        ]);
+        setOrder(orderData);
+        setProducts(prodRes.items);
       } catch (error) {
         toast({ title: 'Error', description: 'No se pudo cargar el pedido', status: 'error' });
       } finally {
         setIsLoading(false);
       }
     };
-    if (orderId) fetchOrder();
+    if (orderId) fetchAll();
   }, [orderId]);
 
   const handleDelete = async () => {
@@ -68,7 +75,7 @@ export default function OrderDetailPage() {
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
         <Box gridColumn={{ md: 'span 2' }}>
           <OrderDetail order={order} />
-          <OrderItemsTable order={order} />
+          <OrderItemsTable order={order} products={products} />
         </Box>
         <Box>
           <Box bg="white" p={6} borderRadius="md" border="1px" borderColor="rgba(0,0,0,0.10)">
