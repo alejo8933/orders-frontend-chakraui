@@ -15,8 +15,10 @@ export default function EditOrderPage() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const data = await getOrderById(Number(orderId));
-        setOrder(data);
+        const res = await fetch('/Orders.json');
+        const allOrders = await res.json();
+        const data = allOrders.find((o: any) => o.id === Number(orderId));
+        setOrder(data || null);
       } catch (error) {
         console.error(error);
       } finally {

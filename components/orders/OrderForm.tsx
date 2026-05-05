@@ -46,12 +46,21 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [custRes, prodRes] = await Promise.all([
-          getCustomers({ limit: 100 }),
-          getProducts({ limit: 100 })
-        ]);
-        setCustomers(custRes.items);
-        setProducts(prodRes.items);
+        const res = await fetch('/Orders.json');
+        const allOrders = await res.json();
+
+        const customersMap = new Map();
+        const productsMap = new Map();
+
+        allOrders.forEach((o: any) => {
+          if (!customersMap.has(o.customer.id)) customersMap.set(o.customer.id, o.customer);
+          o.items.forEach((i: any) => {
+            if (!productsMap.has(i.product.id)) productsMap.set(i.product.id, i.product);
+          });
+        });
+
+        setCustomers(Array.from(customersMap.values()));
+        setProducts(Array.from(productsMap.values()));
       } catch (e) {
         console.error(e);
       } finally {
@@ -92,19 +101,14 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
     if (!isValid) return;
     try {
       setIsLoading(true);
-      const payload: OrderCreate = {
-        customerId: customerId as number,
-        items: items.map(it => ({ productId: it.productId as number, quantity: it.quantity }))
-      };
+      await new Promise(r => setTimeout(r, 500)); // Simulate API delay
 
       if (isEdit && initialData) {
-        await replaceOrder(initialData.id, payload);
-        toast({ title: 'Pedido actualizado', status: 'success', duration: 3000, position: 'top-right' });
+        toast({ title: 'Pedido actualizado (Simulado)', status: 'success', duration: 3000, position: 'top-right' });
         router.push(`/orders/${initialData.id}`);
       } else {
-        const res = await createOrder(payload);
-        toast({ title: 'Pedido creado exitosamente', status: 'success', duration: 3000, position: 'top-right' });
-        router.push(`/orders/${res.id}`);
+        toast({ title: 'Pedido creado exitosamente (Simulado)', status: 'success', duration: 3000, position: 'top-right' });
+        router.push(`/orders`);
       }
     } catch (e) {
       toast({ title: 'Error', description: 'No se pudo guardar el pedido', status: 'error', duration: 4000, position: 'top-right' });
