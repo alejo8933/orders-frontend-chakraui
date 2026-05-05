@@ -23,16 +23,8 @@ export default function OrderDetailPage() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch('/Orders.json');
-        const ordersData = await res.json();
-        
-        const saved = JSON.parse(localStorage.getItem('editedOrders') || '{}');
-        const allOrders = ordersData.map((o: any) => 
-          saved[o.id] ? { ...o, ...saved[o.id] } : o
-        );
-
-        const data = allOrders.find((o: any) => o.id === Number(orderId));
-        setOrder(data || null);
+        const data = await getOrderById(Number(orderId));
+        setOrder(data);
       } catch (error) {
         toast({ title: 'Error', description: 'No se pudo cargar el pedido', status: 'error' });
       } finally {
@@ -45,8 +37,8 @@ export default function OrderDetailPage() {
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      await new Promise(r => setTimeout(r, 500)); // Simulate API delay
-      toast({ title: 'Pedido eliminado (Simulado)', status: 'success' });
+      await deleteOrder(Number(orderId));
+      toast({ title: 'Pedido eliminado', status: 'success' });
       router.push('/orders');
     } catch (error) {
       toast({ title: 'Error', status: 'error' });

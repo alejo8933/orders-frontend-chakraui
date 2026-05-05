@@ -17,21 +17,9 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/Orders.json');
-      const allOrders = await res.json();
-      
-      const customersMap = new Map();
-      allOrders.forEach((o: any) => {
-        if (!customersMap.has(o.customer.id)) {
-          customersMap.set(o.customer.id, o.customer);
-        }
-      });
-      const allCustomers = Array.from(customersMap.values());
-
-      setTotal(allCustomers.length);
-      const startIndex = (page - 1) * limit;
-      const paginatedItems = allCustomers.slice(startIndex, startIndex + limit);
-      setCustomers(paginatedItems as Customer[]);
+      const res = await getCustomers({ page, limit });
+      setCustomers(res.items);
+      setTotal(res.total);
     } catch (error) {
       console.error(error);
     } finally {

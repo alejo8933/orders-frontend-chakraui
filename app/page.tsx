@@ -24,31 +24,35 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const res = await fetch('/Orders.json')
-        const orders = await res.json()
-
-        setOrders(orders.slice(0, 5))
-        setTotalOrders(orders.length)
-
-        const total = orders.reduce(
-          (sum: number, o: any) => sum + (o.totalAmount || 0), 0
-        )
-        setTotalSold(total)
-
-        const productIds = new Set(
-          orders.flatMap((o: any) => o.items.map((i: any) => i.product.id))
-        )
-        setTotalProducts(productIds.size)
-
-        const customerIds = new Set(orders.map((o: any) => o.customer.id))
-        setTotalCustomers(customerIds.size)
-
+        const [ordersRes, productsRes, customersRes] = await Promise.allSettled([
+          axios.get(`${API}/orders?page=1&limit=5`),
+          axios.get(`${API}/products?limit=100`),
+          axios.get(`${API}/customers?limit=100`),
+        ])
+        
+        if (ordersRes.status === 'fulfilled') {
+          const data = ordersRes.value.data
+          setOrders(data.items || [])
+          setTotalOrders(data.total || 0)
+          const total = (data.items || []).reduce(
+            (sum: number, o: any) => sum + (o.totalAmount || o.total_amount || 0), 0)
+          setTotalSold(total)
+        }
+        
+        if (productsRes.status === 'fulfilled') {
+          setTotalProducts(productsRes.value.data.total || 0)
+        }
+        
+        if (customersRes.status === 'fulfilled') {
+          setTotalCustomers(customersRes.value.data.total || 0)
+        }
       } catch (err) {
-        console.error('Error:', err)
+        console.error('Error in dashboard data:', err)
       } finally {
         setLoading(false)
       }
     }
+    
     fetchData()
   }, [])
 

@@ -17,23 +17,9 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/Orders.json');
-      const allOrders = await res.json();
-      
-      const productsMap = new Map();
-      allOrders.forEach((o: any) => {
-        o.items.forEach((i: any) => {
-          if (!productsMap.has(i.product.id)) {
-            productsMap.set(i.product.id, i.product);
-          }
-        });
-      });
-      const allProducts = Array.from(productsMap.values());
-
-      setTotal(allProducts.length);
-      const startIndex = (page - 1) * limit;
-      const paginatedItems = allProducts.slice(startIndex, startIndex + limit);
-      setProducts(paginatedItems as Product[]);
+      const res = await getProducts({ page, limit });
+      setProducts(res.items);
+      setTotal(res.total);
     } catch (error) {
       console.error(error);
     } finally {
