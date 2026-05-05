@@ -1,99 +1,69 @@
-"use client";
+"use client"
 
-import { Box, SimpleGrid, Stat, StatLabel, StatNumber, Table, Thead, Tbody, Tr, Th, Td, Button, Skeleton, Text, Flex } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
-import { getOrders } from '../services/ordersService';
-import { getProducts } from '../services/productsService';
-import { getCustomers } from '../services/customersService';
-import { Order } from '../types/order';
-import Link from 'next/link';
-import { StatusBadge } from '../components/ui/StatusBadge';
+import { useEffect, useState } from 'react'
+import { Box, SimpleGrid, Text, Stat, StatLabel, StatNumber, Table, Thead, Tbody, Tr, Th, Td, Button, Skeleton, Flex } from '@chakra-ui/react'
+import Link from 'next/link'
+import axios from 'axios'
+import { StatusBadge } from '../components/ui/StatusBadge'
+
+const API = process.env.NEXT_PUBLIC_API_URL 
+  ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1` 
+  : 'https://orders-rest-api-python.onrender.com/api/v1';
 
 export default function Dashboard() {
   console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [totalSales, setTotalSales] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [totalCustomers, setTotalCustomers] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasTimeout, setHasTimeout] = useState(false);
-
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      setHasTimeout(false);
-
-      // Llamadas independientes
-      const promises = [
-        getOrders({ page: 1, limit: 5 })
-          .then(res => {
-            setOrders(res.items);
-            setTotalOrders(res.total);
-          })
-          .catch(e => {
-            console.error('Error fetching orders:', e);
-            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
-          }),
-
-        getOrders({ page: 1, limit: 100 })
-          .then(res => {
-            const sumSales = res.items.reduce((acc, order) => acc + order.totalAmount, 0);
-            setTotalSales(sumSales);
-          })
-          .catch(e => {
-            console.error('Error fetching sum:', e);
-            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
-          }),
-
-        getProducts({ page: 1, limit: 1 })
-          .then(res => setTotalProducts(res.total))
-          .catch(e => {
-            console.error('Error fetching products:', e);
-            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
-          }),
-
-        getCustomers({ page: 1, limit: 1 })
-          .then(res => setTotalCustomers(res.total))
-          .catch(e => {
-            console.error('Error fetching customers:', e);
-            if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) setHasTimeout(true);
-          })
-      ];
-
-      await Promise.allSettled(promises);
-      
-    } catch (error: any) {
-      console.error('Error in dashboard data:', error);
-      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
-        setHasTimeout(true);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [orders, setOrders] = useState<any[]>([])
+  const [totalOrders, setTotalOrders] = useState(0)
+  const [totalSold, setTotalSold] = useState(0)
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [totalCustomers, setTotalCustomers] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const [ordersRes, productsRes, customersRes] = await Promise.allSettled([
+          axios.get(`${API}/orders?page=1&limit=5`),
+          axios.get(`${API}/products?limit=100`),
+          axios.get(`${API}/customers?limit=100`),
+        ])
+        
+        if (ordersRes.status === 'fulfilled') {
+          const data = ordersRes.value.data
+          setOrders(data.items || [])
+          setTotalOrders(data.total || 0)
+          const total = (data.items || []).reduce(
+            (sum: number, o: any) => sum + (o.totalAmount || o.total_amount || 0), 0)
+          setTotalSold(total)
+        }
+        
+        if (productsRes.status === 'fulfilled') {
+          setTotalProducts(productsRes.value.data.total || 0)
+        }
+        
+        if (customersRes.status === 'fulfilled') {
+          setTotalCustomers(customersRes.value.data.total || 0)
+        }
+      } catch (err) {
+        console.error('Error in dashboard data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('es-ES');
   };
-
-  if (hasTimeout) {
-    return (
-      <Flex direction="column" align="center" justify="center" h="50vh" gap={4}>
-        <Text fontSize="xl" color="red.500">La API está iniciando, por favor espera...</Text>
-        <Button colorScheme="teal" onClick={fetchData}>Reintentar</Button>
-      </Flex>
-    );
-  }
 
   return (
     <Box>
@@ -105,7 +75,7 @@ export default function Dashboard() {
         <Box bg="white" p={6} borderRadius="md" border="1px" borderColor="rgba(0,0,0,0.10)">
           <Stat>
             <StatLabel color="#7a7974" mb={2}>Total Pedidos</StatLabel>
-            <Skeleton isLoaded={!isLoading}>
+            <Skeleton isLoaded={!loading}>
               <StatNumber fontSize="3xl" color="#28251d">{totalOrders}</StatNumber>
             </Skeleton>
           </Stat>
@@ -113,9 +83,9 @@ export default function Dashboard() {
         <Box bg="white" p={6} borderRadius="md" border="1px" borderColor="rgba(0,0,0,0.10)">
           <Stat>
             <StatLabel color="#7a7974" mb={2}>Total Vendido</StatLabel>
-            <Skeleton isLoaded={!isLoading}>
+            <Skeleton isLoaded={!loading}>
               <StatNumber fontSize="3xl" color="#437a22" fontFamily="var(--font-ibm)">
-                {formatCurrency(totalSales)}
+                {formatCurrency(totalSold)}
               </StatNumber>
             </Skeleton>
           </Stat>
@@ -123,7 +93,7 @@ export default function Dashboard() {
         <Box bg="white" p={6} borderRadius="md" border="1px" borderColor="rgba(0,0,0,0.10)">
           <Stat>
             <StatLabel color="#7a7974" mb={2}>Productos Activos</StatLabel>
-            <Skeleton isLoaded={!isLoading}>
+            <Skeleton isLoaded={!loading}>
               <StatNumber fontSize="3xl" color="#28251d">{totalProducts}</StatNumber>
             </Skeleton>
           </Stat>
@@ -131,7 +101,7 @@ export default function Dashboard() {
         <Box bg="white" p={6} borderRadius="md" border="1px" borderColor="rgba(0,0,0,0.10)">
           <Stat>
             <StatLabel color="#7a7974" mb={2}>Clientes Registrados</StatLabel>
-            <Skeleton isLoaded={!isLoading}>
+            <Skeleton isLoaded={!loading}>
               <StatNumber fontSize="3xl" color="#28251d">{totalCustomers}</StatNumber>
             </Skeleton>
           </Stat>
@@ -162,7 +132,7 @@ export default function Dashboard() {
               </Tr>
             </Thead>
             <Tbody>
-              {isLoading ? (
+              {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <Tr key={i}>
                     <Td><Skeleton height="20px" /></Td>
@@ -181,13 +151,13 @@ export default function Dashboard() {
                   </Td>
                 </Tr>
               ) : (
-                orders.map((order) => (
+                orders.map((order: any) => (
                   <Tr key={order.id} _hover={{ bg: '#f9f8f5' }}>
-                    <Td fontFamily="var(--font-ibm)" fontWeight="medium">{order.orderNumber}</Td>
-                    <Td>{order.customer?.firstName} {order.customer?.lastName}</Td>
+                    <Td fontFamily="var(--font-ibm)" fontWeight="medium">{order.orderNumber || order.order_number}</Td>
+                    <Td>{order.customer?.firstName || order.customer?.first_name} {order.customer?.lastName || order.customer?.last_name}</Td>
                     <Td>{order.customer?.city}</Td>
-                    <Td>{formatDate(order.orderDate)}</Td>
-                    <Td fontFamily="var(--font-ibm)">{formatCurrency(order.totalAmount)}</Td>
+                    <Td>{formatDate(order.orderDate || order.order_date)}</Td>
+                    <Td fontFamily="var(--font-ibm)">{formatCurrency(order.totalAmount || order.total_amount || 0)}</Td>
                     <Td><StatusBadge status="Activo" /></Td>
                     <Td>
                       <Button as={Link} href={`/orders/${order.id}`} size="sm" variant="outline" colorScheme="teal">
@@ -202,5 +172,5 @@ export default function Dashboard() {
         </Box>
       </Box>
     </Box>
-  );
+  )
 }
