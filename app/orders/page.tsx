@@ -31,20 +31,27 @@ function OrdersContent() {
   const fetchOrders = async () => {
     try {
       setIsLoading(true);
-      const params: any = { page, limit };
-      if (customerId) params.customerId = Number(customerId);
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
+      const res = await fetch('/Orders.json');
+      const allOrders = await res.json();
       
-      const res = await getOrders(params);
-      
-      let filteredItems = res.items;
+      let filteredItems = allOrders;
       if (search) {
-        filteredItems = filteredItems.filter(o => o.orderNumber.toLowerCase().includes(search.toLowerCase()));
+        filteredItems = filteredItems.filter((o: any) => o.orderNumber.toLowerCase().includes(search.toLowerCase()));
+      }
+      if (customerId) {
+        filteredItems = filteredItems.filter((o: any) => o.customer.id === Number(customerId));
+      }
+      if (dateFrom) {
+        filteredItems = filteredItems.filter((o: any) => new Date(o.orderDate) >= new Date(dateFrom));
+      }
+      if (dateTo) {
+        filteredItems = filteredItems.filter((o: any) => new Date(o.orderDate) <= new Date(dateTo));
       }
 
-      setOrders(filteredItems);
-      setTotal(res.total);
+      setTotal(filteredItems.length);
+      const startIndex = (page - 1) * limit;
+      const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
+      setOrders(paginatedItems);
     } catch (error) {
       console.error(error);
     } finally {
@@ -64,7 +71,10 @@ function OrdersContent() {
   }, [search]);
 
   useEffect(() => {
-    getCustomers({ limit: 100 }).then(res => setCustomers(res.items)).catch(console.error);
+    fetch('/Orders.json').then(res => res.json()).then(data => {
+      const uniqueCustomers = Array.from(new Map(data.map((o: any) => [o.customer.id, o.customer])).values());
+      setCustomers(uniqueCustomers as Customer[]);
+    }).catch(console.error);
   }, []);
 
   return (
