@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [totalSold, setTotalSold] = useState(0)
   const [totalProducts, setTotalProducts] = useState(0)
   const [totalCustomers, setTotalCustomers] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
