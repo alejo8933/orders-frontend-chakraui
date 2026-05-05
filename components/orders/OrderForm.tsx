@@ -103,13 +103,19 @@ export const OrderForm = ({ initialData, isEdit }: OrderFormProps) => {
       setIsLoading(true);
       await new Promise(r => setTimeout(r, 500)); // Simulate API delay
 
-      if (isEdit && initialData) {
-        toast({ title: 'Pedido actualizado (Simulado)', status: 'success', duration: 3000, position: 'top-right' });
-        router.push(`/orders/${initialData.id}`);
-      } else {
-        toast({ title: 'Pedido creado exitosamente (Simulado)', status: 'success', duration: 3000, position: 'top-right' });
-        router.push(`/orders`);
-      }
+      const formData = {
+        customerId,
+        orderDate,
+        items
+      };
+
+      const orderId = isEdit && initialData ? initialData.id : Date.now();
+      const saved = JSON.parse(localStorage.getItem('editedOrders') || '{}');
+      saved[orderId] = { ...formData, id: orderId };
+      localStorage.setItem('editedOrders', JSON.stringify(saved));
+      
+      alert(isEdit ? 'Pedido actualizado correctamente' : 'Pedido creado correctamente');
+      router.push('/orders');
     } catch (e) {
       toast({ title: 'Error', description: 'No se pudo guardar el pedido', status: 'error', duration: 4000, position: 'top-right' });
     } finally {

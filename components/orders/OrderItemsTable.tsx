@@ -2,33 +2,8 @@
 
 import { Box, Table, Thead, Tbody, Tr, Th, Td, Text, Flex } from '@chakra-ui/react';
 import { Order } from '../../types/order';
-import { Product } from '../../types/product';
-import { useEffect, useState } from 'react';
-import { getProductById } from '../../services/productsService';
 
 export const OrderItemsTable = ({ order }: { order: Order }) => {
-  const [products, setProducts] = useState<Record<number, Product>>({});
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      const productData: Record<number, Product> = {};
-      await Promise.all(
-        order.items.map(async (item) => {
-          if (!productData[item.productId]) {
-            try {
-              const prod = await getProductById(item.productId);
-              productData[prod.id] = prod;
-            } catch (e) {
-              console.error(e);
-            }
-          }
-        })
-      );
-      setProducts(productData);
-    };
-    fetchProducts();
-  }, [order.items]);
-
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   return (
@@ -45,9 +20,9 @@ export const OrderItemsTable = ({ order }: { order: Order }) => {
             </Tr>
           </Thead>
           <Tbody>
-            {order.items.map(item => (
+            {order.items.map((item: any) => (
               <Tr key={item.id}>
-                <Td>{products[item.productId]?.productName || 'Cargando...'}</Td>
+                <Td>{item.product?.productName || 'Producto no encontrado'}</Td>
                 <Td isNumeric>{item.quantity}</Td>
                 <Td isNumeric fontFamily="var(--font-ibm)">{formatCurrency(item.unitPrice)}</Td>
                 <Td isNumeric fontFamily="var(--font-ibm)">{formatCurrency(item.quantity * item.unitPrice)}</Td>
